@@ -1,4 +1,5 @@
 print ("Hello World")
+transactions =[]
 inventory = 0
 quitsig = False
 total_inventory = 0
@@ -51,9 +52,25 @@ def load_inventory():
         with open(file_path, "r") as file:
             print(file.read())
             
-def save_inventory(inpu):
-    with open(file_path, 'w') as file:
-        file.write(f"Current Inventory: {inpu}")
+def save_inventory(inventory_list, transactions_list, total_units):
+    with open(file_path, "w") as file:
+        file.write(f"Final Total Inventory: {total_units}\n\n")
+
+        file.write("Current Stock by Product:\n")
+        for item in inventory_list:
+            file.write(f"  {item[0]}: {item[1]}\n")
+
+        file.write("\nTransaction History:\n")
+        if not transactions_list:
+            file.write("  No transactions recorded.\n")
+        else:
+            for t in transactions_list:
+                file.write(
+                    f"  Product: {t[0]}, Quantity: {t[1]}, "
+                    f"Running Total: {t[2]}, Tax: {t[3]}\n"
+                )
+
+
     
 session_value = True
 while session_value == True:
@@ -81,9 +98,16 @@ while session_value == True:
         generate_report(total_inventory, failed_entries)
         save_inventory(total_inventory)
         break
-
+        
     if is_valid:
-        inventory[product_name] = inventory.get(product_name, 0) + quantity
+        transactions.append({
+            "product": product_name,
+            "quantity": userinput,
+            
+
+        })
+        print(transactions)
+        
         total_inventory = process_delivery(total_inventory, quantity)
         tax = calculate_tax(total_inventory)
         print("this is yo tax:", tax)
