@@ -18,44 +18,35 @@ file_path = os.path.join(script_dir, "orders.txt")
  
 # Create
 # save_inventory() and save data to inventory.json.
-
 user_data = {
     "ID": "P01",
     "Product Name": "Widget",
-    "Price": 19.99,
+   "Price": 19.99,
     "Stock": 100,
 }
 
+
 def load_inventory():
-    global next_order_id
-    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-        with open("user.json", "w") as file:
-            json.dump(user_data, file, indent=4)
-        print("No inventory file found. Created a new one.")
-        return
+    """Load inventory.json into the global list, or start empty."""
+    global inventory
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        try:
+            with open(file_path, "r") as f:
+                inventory = json.load(f)
+            print("inventory.json found. Inventory loaded successfully.")
+            return
+        except json.JSONDecodeError:
+            print("inventory.json is corrupted. Starting empty.")
+    else:
+        print("No inventory file found. Starting with an empty inventory.")
+    inventory = []
 
-    print("Current Orders:\n")
-    with open(file_path, "r") as file:
-        for line in file:
-            line = line.strip()
-            if not line or "," not in line:
-                continue
-            parts = line.split(",")
-            order_id = int(parts[0].strip())
-            product_name = parts[1].strip()
-            quantity = int(parts[2].strip())
-            inventory.append([order_id, product_name, quantity])
-            print(line)
-            if order_id >= next_order_id:
-                next_order_id = order_id + 1
-    print()
 
-def save_inventory(dictionary):
-    with open(file_path, "w") as file:
-        for item in inventory_list:
-            file.write(f"{item[0]},{item[1]},{item[2]}\n")
-    print(f"Order successfully saved to {os.path.basename(file_path)}")
- 
+def save_inventory():
+    """Write the global list to inventory.json."""
+    with open(file_path, "w") as f:
+        json.dump(inventory, f, indent=4)
+    print("Inventory saved to inventory.json")
 
 def get_valid_input(userinput, failed_entries, total_inventory):
     if userinput.lower() == "quit":
@@ -87,7 +78,7 @@ def calculate_tax(amount):
 def update_inventory_list(inventory_list, order_id, product_name, quantity):
     inventory_list.append([order_id, product_name, quantity])
 
-def add_product(inventory):
+def add_product():
     """Prompt for each field, validate, append, and save to JSON."""
     print("Add New Product")
     
@@ -124,7 +115,7 @@ def add_product(inventory):
             print("Enter a whole number (e.g. 10).")
  
     inventory.append({"id": pid, "name": name, "price": price, "stock": stock})
-    save_inventory(inventory)  # write to inventory.json right away
+    save_inventory()  # write to inventory.json right away
     print("Product added successfully!")
 
 
@@ -132,6 +123,54 @@ def generate_report(total_units, failed_attempts):
     print("Failed Entries:", failed_attempts)
     print("Total Units processed:", total_units)
 
+def search_product():
+    """Prompt for a product ID and show the matching product, if any."""
+    print("Search Product")
+    pid = input("Enter Product ID: ").strip().upper()
+ 
+    if not pid:
+        print("ID cannot be empty.")
+        return
+ 
+    for p in inventory:
+        if p["id"].upper() == pid:
+            print("Product found:")
+            print("-" * 48)
+            print(f"ID: {p['id']} | Name: {p['name']} | "
+                  f"Price: ${p['price']:.2f} | Stock: {p['stock']}")
+            print("-" * 48)
+            return
+ 
+    print(f"No product found with ID '{pid}'.")    
+
+def update_stock():
+    """Find a product by ID, prompt for a new stock quantity, and save."""
+    print("Update Stock")
+    pid = input("Enter Product ID: ").strip().upper()
+ 
+    if not pid:
+        print("ID cannot be empty.")
+        return
+ 
+    for p in inventory:
+        if p["id"].upper() == pid:
+            print(f"Found: {p['name']} (current stock: {p['stock']})")
+ 
+            while True:
+                try:
+                    new_stock = int(input("New Stock Quantity: "))
+                    if new_stock < 0:
+                        raise ValueError
+                    break
+                except ValueError:
+                    print("Enter a whole number (e.g. 10).")
+ 
+            p["stock"] = new_stock
+            save_inventory()
+            print("Stock updated successfully!")
+            return
+ 
+    print(f"No product found with ID '{pid}'.")
 
 
 def print_main_menu():
@@ -142,54 +181,54 @@ def print_main_menu():
     print("5. Save Inventory")
     print("6. Exit")
 
-def menu_actions():
-    actions = {
-        "1": load_inventory,
-        "2": add_product,
-        "3":
-        "4":
-        "5":
-        "6":
-    }
+def display_all_products():
+    """Read inventory.json from disk and print every product."""
+    if not os.path.exists(file_path):
+        print("inventory.json not found. Add a product first.")
+        return
+ 
+    try:
+        with open(file_path, "r") as f:
+            products = json.load(f)
+    except json.JSONDecodeError:
+        print("inventory.json is empty or corrupted.")
+        return
+ 
+    if not products:
+        print("Inventory is empty.")
+        return
+ 
+    print("Current Inventory")
+    print("-" * 48)
+    for p in products:
+        print(f"ID: {p['id']} | Name: {p['name']} | "
+              f"Price: ${p['price']:.2f} | Stock: {p['stock']}")
+    print("-" * 48)
+
+  
 
 load_inventory()
 
 session_value = True
 while session_value:
+    actions = {
+            "1": display_all_products,
+            "2": add_product,
+            "3": save_inventory,
+            "4": search_product,
+            "5": save_inventory
+            
+        }
     print_main_menu()
-    choice = input("Choose an option: ").strip()
-    if choice == "6": #Quitting program
+    choice = input("Enter option: ").strip()
+    if choice == "6":
         print("Saving Inventory before exit...")
         save_inventory()
-        print("Inventory saved succesfully.")
         break
     action = actions.get(choice)
     if action:
-            action()
+        action()
     else:
-            print("Invalid choice, try again.")
-    userinput = input("Enter Quantity: ")
-
-    is_quit, is_valid, quantity, failed_entries = get_valid_input(
-        userinput, failed_entries, total_inventory
-    )
-
-    if is_quit:
-        print("Exiting program.")
-        generate_report(total_inventory, failed_entries)
-        save_inventory(inventory, transactions, total_inventory)
-        break
+        print("Invalid choice, try again.")
 
 
-
-    if is_valid:
-        order_id = next_order_id
-        next_order_id += 1
-
-        update_inventory_list(inventory, order_id, product_name, quantity)
-        total_inventory = process_delivery(total_inventory, quantity)
-        tax = calculate_tax(total_inventory)
-
-        print(f"\nNew Order Added:\n{order_id},{product_name},{quantity}\n")
-
-        transactions.append([order_id, product_name, quantity, total_inventory, tax])
