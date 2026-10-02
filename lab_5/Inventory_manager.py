@@ -214,7 +214,7 @@ while session_value:
     actions = {
             "1": display_all_products,
             "2": add_product,
-            "3": save_inventory,
+            "3": update_stock,
             "4": search_product,
             "5": save_inventory
             
