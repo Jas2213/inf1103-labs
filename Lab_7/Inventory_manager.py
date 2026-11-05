@@ -52,7 +52,13 @@ class PhysicalProduct(Product):
         
         return f"Physical Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}, Weight: {self.weight}kg"
     
+class DigitalProduct(Product):
+    def __init__(self, product_id, name, price, stock, download_size):
+        super().__init__(product_id, name, price, stock)
+        self.file_size = download_size
 
+    def display_information(self):
+        return f"Digital Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}, File Size: {self.file_size}MB"
 
 class FileHandler:
     def __init__(self, filename="inventory.json"):
