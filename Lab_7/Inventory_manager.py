@@ -17,7 +17,10 @@ class Product:
     def to_dict(self):
         return {"id": self.product_id, "name": self.name,
                 "price": self.price, "stock": self.stock}
-
+    
+    def display_information(self):
+            return f"Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}"
+    
     @classmethod
     def from_dict(cls, data):
         return cls(data["id"], data["name"], data["price"], data["stock"])
@@ -25,6 +28,17 @@ class Product:
     def __str__(self):
         return (f"ID: {self.product_id} | Name: {self.name} | "
                 f"Price: ${self.price:.2f} | Stock: {self.stock}")
+                
+    
+    
+# #Update the display_information() method in each subclass to call the parent implementation using super() before
+# displaying the additional information. The subclass should reuse the existing product information rather than
+# duplicating all the code from Prod
+# uct.
+ 
+# This means, part of the implementation of display_information (the part that
+# uses common attributes from the parent) will be completed by the parent, and the child will add on the parts in
+# display_information that are unique to the child.
 
 class Inventory:
     def __init__(self):
@@ -46,20 +60,21 @@ class PhysicalProduct(Product):
     def __init__(self, product_id, name, price, stock, weight):
         super().__init__(product_id, name, price, stock)
         self.weight = weight
+    
+    
 
-        
     def display_information(self):
-        
-        return f"Physical Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}, Weight: {self.weight}kg"
+        return super().display_information() + f", Weight: {self.weight}kg"
+    
     
 class DigitalProduct(Product):
     def __init__(self, product_id, name, price, stock, download_size):
         super().__init__(product_id, name, price, stock)
         self.file_size = download_size
-
+        
     def display_information(self):
-        return f"Digital Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}, File Size: {self.file_size}MB"
-
+            return super().display_information() + f", File Size: {self.file_size}MB" 
+       
 class FileHandler:
     def __init__(self, filename="inventory.json"):
         script_dir = os.path.dirname(os.path.abspath(__file__))
