@@ -1,13 +1,17 @@
 import json
 import os
+from abc import ABC, abstractmethod
 
-
-class Product:
+class Product(ABC):
     def __init__(self, product_id, name, price, stock):
         self.product_id = product_id
         self.name = name
         self.price = price
         self.stock = stock
+
+    @abstractmethod
+    def get_fulfilment_info(self):
+        pass    
 
     def update_stock(self, new_stock):
         if new_stock < 0:
@@ -23,22 +27,68 @@ class Product:
     
     @classmethod
     def from_dict(cls, data):
-        return cls(data["id"], data["name"], data["price"], data["stock"])
+        # Factory method: inspects dictionary keys to instantiate the correct subclass
+        if "weight" in data:
+            return PhysicalProduct.from_dict(data)
+        elif "download_size" in data:
+            return DigitalProduct.from_dict(data)
+        raise ValueError("Unknown product type in data dictionary.")
 
-    def __str__(self):
-        return (f"ID: {self.product_id} | Name: {self.name} | "
-                f"Price: ${self.price:.2f} | Stock: {self.stock}")
-                
+
+class CanBeShipped(ABC):
+    @abstractmethod
+    def calculate_shipping_cost(self):
+        pass  
+    
+
+class PhysicalProduct(Product, CanBeShipped):
+    def __init__(self, product_id, name, price, stock, weight):
+        super().__init__(product_id, name, price, stock)
+        self.weight = weight
+    
+    def calculate_shipping_cost(self):
+        # 10 dollar per kg
+        return self.weight * 10  
+    
+    def get_fulfilment_info(self):
+        return f"This product requires physical shipping. Weight: {self.weight}kg"
+
+    def display_information(self):
+        return super().display_information() + f", Weight: {self.weight}kg"
+    def to_dict(self):
+        data = super().to_dict()          # reuse the parent's dictionary
+        data["weight"] = self.weight      # add the extra field
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["id"], data["name"], data["price"],
+                   data["stock"], data.get("weight", 0))
+    
+class DigitalProduct(Product):
+    def __init__(self, product_id, name, price, stock, download_size):
+        super().__init__(product_id, name, price, stock)
+        self.file_size = download_size
+
+    def to_dict(self):
+        data = super().to_dict()          # reuse the parent's dictionary
+        data["download_size"] = self.file_size      # add the extra field
+        return data
+    def get_fulfilment_info(self):
+            return f"This product is delivered digitally. File Size: {self.file_size}MB"
+    
+    def display_information(self):
+            return super().display_information() + f", File Size: {self.file_size}MB" 
+    
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["id"], data["name"], data["price"],
+                   data["stock"], data.get("download_size", 0))
+
     
     
-# #Update the display_information() method in each subclass to call the parent implementation using super() before
-# displaying the additional information. The subclass should reuse the existing product information rather than
-# duplicating all the code from Prod
-# uct.
- 
-# This means, part of the implementation of display_information (the part that
-# uses common attributes from the parent) will be completed by the parent, and the child will add on the parts in
-# display_information that are unique to the child.
+
+
 
 class Inventory:
     def __init__(self):
@@ -56,25 +106,7 @@ class Inventory:
             raise ValueError("That ID already exists.")
         self.products.append(product)
 
-class PhysicalProduct(Product):
-    def __init__(self, product_id, name, price, stock, weight):
-        super().__init__(product_id, name, price, stock)
-        self.weight = weight
-    
-    
 
-    def display_information(self):
-        return super().display_information() + f", Weight: {self.weight}kg"
-    
-    
-class DigitalProduct(Product):
-    def __init__(self, product_id, name, price, stock, download_size):
-        super().__init__(product_id, name, price, stock)
-        self.file_size = download_size
-        
-    def display_information(self):
-            return super().display_information() + f", File Size: {self.file_size}MB" 
-       
 class FileHandler:
     def __init__(self, filename="inventory.json"):
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -107,7 +139,7 @@ class MainProgram:
         self.inventory = self.file_handler.load()
         self.running = True
 
-    # --- helper: replaces the three copy-pasted validation loops ---
+    
     @staticmethod
     def read_number(prompt, cast, error):
         while True:
@@ -127,7 +159,10 @@ class MainProgram:
         print("Current Inventory")
         print("-" * 48)
         for p in self.inventory.products:
-            print(p)
+            if isinstance(p, PhysicalProduct):
+                print(f"Physical Product: {p.display_information()}")
+            elif isinstance(p, DigitalProduct):
+                print(f"Digital Product: {p.display_information()}")
         print("-" * 48)
 
     def add_product(self):
@@ -140,11 +175,29 @@ class MainProgram:
                 print("That ID already exists.")
             else:
                 break
+        print("Select Product Type:")
+        print("1. Physical Product")
+        print("2. Digital Product")
+        while True:
+            choice = input("Enter your choice (1 or 2): ").strip()
+            if choice == "1":
+                product_type = "physical"
+                break
+            elif choice == "2":
+                product_type = "digital"
+                break
+            else:
+                print("Invalid choice. Please enter 1 or 2.")
         name = input("Product Name: ").strip()
         price = self.read_number("Price: ", float, "Enter a valid price (e.g. 299.99).")
         stock = self.read_number("Stock Quantity: ", int, "Enter a whole number (e.g. 10).")
 
-        self.inventory.add(Product(pid, name, price, stock))
+        if product_type == "physical":
+            weight = self.read_number("Weight: ", float, "Enter a valid weight (e.g. 1.5).")
+            self.inventory.add(PhysicalProduct(pid, name, price, stock, weight))
+        else:
+            download_size = self.read_number("Download Size (MB): ", float, "Enter a valid size (e.g. 100.5).")
+            self.inventory.add(DigitalProduct(pid, name, price, stock, download_size))
         self.file_handler.save(self.inventory)
         print("Product added successfully!")
 

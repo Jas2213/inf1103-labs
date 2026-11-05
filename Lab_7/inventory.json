@@ -1,0 +1,16 @@
+[
+    {
+        "id": "1",
+        "name": "lebon",
+        "price": 100.0,
+        "stock": 1,
+        "weight": 10.0
+    },
+    {
+        "id": "2",
+        "name": "windows",
+        "price": 100.0,
+        "stock": 1,
+        "download_size": 1000.0
+    }
+]
