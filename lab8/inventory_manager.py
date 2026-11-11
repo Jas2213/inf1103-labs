@@ -1,20 +1,20 @@
 import json
 import os
 from abc import ABC, abstractmethod
-
+from __future__ import annotations
 
 class Supplier:
-    def __init__(self, name, contact_email):
+    def __init__(self, name: str, contact_email: str):
         self.name = name
         self.contact_email = contact_email
 
-    def display_information(self):
+    def display_information(self) -> str:
         return f"Supplier Information: Name: {self.name}, Contact Email: {self.contact_email}"
 
 
 
 class Product(ABC):
-    def __init__(self, product_id, name, price, stock, supplier: Supplier):
+    def __init__(self, product_id: str, name: str, price: float, stock: int, supplier: Supplier):
         self.product_id = product_id
         self.name = name
         self.price = price
@@ -22,23 +22,23 @@ class Product(ABC):
         self.supplier: Supplier = supplier
 
     @abstractmethod
-    def get_fulfilment_info(self):
+    def get_fulfilment_info(self) -> str:
         pass    
 
-    def update_stock(self, new_stock):
+    def update_stock(self, new_stock: int):
         if new_stock < 0:
             raise ValueError("Stock cannot be negative.")
         self.stock = new_stock
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {"id": self.product_id, "name": self.name,
                 "price": self.price, "stock": self.stock}
     
-    def display_information(self):
+    def display_information(self) -> str:
             return f"Product Information: ID: {self.product_id}, Name: {self.name}, Price: ${self.price:.2f}, Stock: {self.stock}"
     
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: dict):
         # Factory method: inspects dictionary keys to instantiate the correct subclass
         if "weight" in data:
             return PhysicalProduct.from_dict(data)
@@ -54,45 +54,45 @@ class CanBeShipped(ABC):
     
 
 class PhysicalProduct(Product, CanBeShipped):
-    def __init__(self, product_id, name, price, stock, weight, supplier: Supplier):
+    def __init__(self, product_id: str, name: str, price: float, stock: int, weight: float, supplier: Supplier):
         super().__init__(product_id, name, price, stock, supplier)
         self.weight = weight
-    
-    def calculate_shipping_cost(self):
+
+    def calculate_shipping_cost(self) -> float:
         # 10 dollar per kg
-        return self.weight * 10  
-    
-    def get_fulfilment_info(self):
+        return self.weight * 10
+
+    def get_fulfilment_info(self) -> str:
         return f"This product requires physical shipping. Weight: {self.weight}kg"
 
-    def display_information(self):
+    def display_information(self) -> str:
         return super().display_information() + f", Weight: {self.weight}kg"
-    
-    def to_dict(self):
+
+    def to_dict(self) -> dict:
         data = super().to_dict()          # reuse the parent's dictionary
         data["weight"] = self.weight      # add the extra field
         return data
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: dict):
         return cls(data["id"], data["name"], data["price"],
                    data["stock"], data.get("weight", 0))
     
 class DigitalProduct(Product):
-    def __init__(self, product_id, name, price, stock, download_size, supplier: Supplier):
+    def __init__(self, product_id: str, name: str, price: float, stock: int, download_size: float, supplier: Supplier):
         super().__init__(product_id, name, price, stock, supplier)
         self.file_size = download_size
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         data = super().to_dict()          # reuse the parent's dictionary
         data["download_size"] = self.file_size      # add the extra field
         return data
-    def get_fulfilment_info(self):
+    def get_fulfilment_info(self) -> str:
             return f"This product is delivered digitally. File Size: {self.file_size}MB"
-    
-    def display_information(self):
-            return super().display_information() + f", File Size: {self.file_size}MB" 
-    
+
+    def display_information(self) -> str:
+            return super().display_information() + f", File Size: {self.file_size}MB"
+
     @classmethod
     def from_dict(cls, data):
         return cls(data["id"], data["name"], data["price"],
@@ -113,26 +113,27 @@ class Order:
     def add_order(self, product: Product, quantity: int) -> None:
         order_line = OrderLine(product, quantity)
         self.order_lines.append(order_line)
+    def calculate_total(self) -> float:
+        return sum(line.calculate_subtotal() for line in self.order_lines)
 
-
-        
+    
 class Inventory:
     def __init__(self):
         self.products: list[Product] = []
 
-    def find_product(self, product_id: str):
+    def find_product(self, product_id: str) -> Product | None:
         product_id = product_id.upper()
         for p in self.products:
             if p.product_id.upper() == product_id:
                 return p
             return None
 
-    def add(self, product: Product):
+    def add(self, product: Product) -> None:
         if self.find_product(product.product_id):
             raise ValueError("That ID already exists.")
         self.products.append(product)
 
-    def remove_product(self, product_id: str):
+    def remove_product(self, product_id: str) -> bool:
         product = self.find_product(product_id)
         if product:
             self.products.remove(product)
@@ -141,11 +142,11 @@ class Inventory:
     
 
 class FileHandler:
-    def __init__(self, filename="inventory.json"):
+    def __init__(self, filename:str ="inventory.json") -> Product:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         self.file_path = os.path.join(script_dir, filename)
 
-    def load(self):
+    def load(self) -> Inventory:
         """Return an Inventory loaded from disk (empty if missing/corrupt)."""
         inventory = Inventory()
         if os.path.exists(self.file_path) and os.path.getsize(self.file_path) > 0:
@@ -160,7 +161,7 @@ class FileHandler:
             print("No inventory file found. Starting empty.")
         return inventory
 
-    def save(self, inventory):
+    def save(self, inventory) -> None:
         with open(self.file_path, "w") as f:
             json.dump([p.to_dict() for p in inventory.products], f, indent=4)
         print("Inventory saved.")
