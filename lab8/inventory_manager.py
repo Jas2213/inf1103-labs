@@ -98,7 +98,24 @@ class DigitalProduct(Product):
         return cls(data["id"], data["name"], data["price"],
                    data["stock"], data.get("download_size", 0))
 
+class OrderLine:
+    def __init__(self, product: Product, quantity):
+        self.product = product
+        self.quantity = quantity
 
+    def calculate_subtotal(self) -> float:
+        return self.product.price * self.quantity
+
+class Order:
+    def __init__(self, order_id: str):
+        self.order_id: str = order_id
+        self.order_lines: list[OrderLine] = []
+    def add_order(self, product: Product, quantity: int) -> None:
+        order_line = OrderLine(product, quantity)
+        self.order_lines.append(order_line)
+
+
+        
 class Inventory:
     def __init__(self):
         self.products: list[Product] = []
