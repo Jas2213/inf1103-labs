@@ -98,25 +98,30 @@ class DigitalProduct(Product):
         return cls(data["id"], data["name"], data["price"],
                    data["stock"], data.get("download_size", 0))
 
-    
-
 
 class Inventory:
     def __init__(self):
-        self.products = []
+        self.products: list[Product] = []
 
-    def find(self, product_id):
+    def find_product(self, product_id: str):
         product_id = product_id.upper()
         for p in self.products:
             if p.product_id.upper() == product_id:
                 return p
             return None
 
-    def add(self, product):
-        if self.find(product.product_id):
+    def add(self, product: Product):
+        if self.find_product(product.product_id):
             raise ValueError("That ID already exists.")
         self.products.append(product)
 
+    def remove_product(self, product_id: str):
+        product = self.find_product(product_id)
+        if product:
+            self.products.remove(product)
+            return True
+        return False
+    
 
 class FileHandler:
     def __init__(self, filename="inventory.json"):
