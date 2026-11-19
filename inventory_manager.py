@@ -30,13 +30,13 @@ class DiscountStrategy(ABC):
     def apply(self, total, float) -> float:
         pass
 class NoDiscount(DiscountStrategy):
-    def apply(self,total,float) -> float:
+    def apply(self, total: float) -> float:
         return total
     
 class PercentageDiscount(DiscountStrategy):
     def __init__(self, percentage: float) -> None:
         self.percentage: float = percentage
-    def apply (self, total, float ) -> float:
+    def apply(self, total: float) -> float:
         return total * (1 - self.percentage/100)
     
 
@@ -50,12 +50,17 @@ class BulkDiscount(DiscountStrategy):
 class StudentDiscount(DiscountStrategy):
     def __init__(self, percentage: float = 5) -> None:
         self.percentage: float = percentage
-    def apply (self, total, float) -> float:
+    def apply(self, total: float) -> float:
         return total * (1 - self.percentage/100)
 
         
 class Product(ABC):
     def __init__(self, product_id: str, name: str, price: float, stock: int, supplier: Supplier) -> None:
+        if price <= 0:
+            raise ValueError("Price must be greater than zero.")
+        if stock < 0:
+            raise ValueError("Stock cannot be negative.")
+
         self.product_id: str = product_id
         self.name: str = name
         self.price: float = price
@@ -97,14 +102,15 @@ class CanBeShipped(ABC):
 class ProductFactory:
     @staticmethod
     def create(product_type: str, product_id: str, name: str, price: float,
-               stock_quantity: int, supplier: Supplier) -> Product:
+               stock_quantity: int, supplier: Supplier,
+               weight: float = 0, download_size: float = 0) -> Product:
+        product_type = product_type.strip().lower()
         if product_type == "physical":
-            return PhysicalProduct(product_id, name, price, stock_quantity, supplier)
+            return PhysicalProduct(product_id, name, price, stock_quantity, weight, supplier)
         elif product_type == "digital":
-            return DigitalProduct(product_id, name, price, stock_quantity, supplier)
+            return DigitalProduct(product_id, name, price, stock_quantity, download_size, supplier)
         else:
             raise ValueError(f"Unknown product type: {product_type}")
-
 class PhysicalProduct(Product, CanBeShipped):
     def __init__(self, product_id: str, name: str, price: float, stock: int, weight: float, supplier: Supplier) -> None:
         super().__init__(product_id, name, price, stock, supplier)
@@ -155,6 +161,9 @@ class DigitalProduct(Product):
 
 class OrderLine:
     def __init__(self, product: Product, quantity: int) -> None:
+        if quantity <= 0:
+            raise ValueError("Quantity must be greater than zero.")
+
         self.product: Product = product
         self.quantity: int = quantity
 
@@ -258,8 +267,8 @@ class MainProgram:
     def display_all_products(self) -> None:
         self.inventory.display_all_products()
 
-    def add_product(self) -> None:
-        print("Add New Product")
+        def add_product(self) -> None:
+                print("Add New Product")
         while True:
             pid = input("Product ID: ").strip().upper()
             if not pid:
@@ -268,6 +277,7 @@ class MainProgram:
                 print("That ID already exists.")
             else:
                 break
+
         print("Select Product Type:")
         print("1. Physical Product")
         print("2. Digital Product")
@@ -281,19 +291,27 @@ class MainProgram:
                 break
             else:
                 print("Invalid choice. Please enter 1 or 2.")
+
         name = input("Product Name: ").strip()
         price = self.read_number("Price: ", float, "Enter a valid price (e.g. 299.99).")
         stock = self.read_number("Stock Quantity: ", int, "Enter a whole number (e.g. 10).")
+
         supplier_id = input("Supplier ID: ").strip()
         supplier_name = input("Supplier Name: ").strip()
         supplier_email = input("Supplier Contact Email: ").strip()
         supplier = Supplier(supplier_id, supplier_name, supplier_email)
+
+        weight = 0
+        download_size = 0
         if product_type == "physical":
             weight = self.read_number("Weight: ", float, "Enter a valid weight (e.g. 1.5).")
-            self.inventory.add_product(PhysicalProduct(pid, name, price, stock, weight, supplier))
         else:
             download_size = self.read_number("Download Size (MB): ", float, "Enter a valid size (e.g. 100.5).")
-            self.inventory.add_product(DigitalProduct(pid, name, price, stock, download_size, supplier))
+
+        product = ProductFactory.create(product_type, pid, name, price, stock, supplier,
+                                        weight=weight, download_size=download_size)
+        self.inventory.add_product(product)
+
         self.file_handler.save(self.inventory)
         print("Product added successfully!")
 
