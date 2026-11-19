@@ -1,0 +1,14 @@
+[
+    {
+        "id": "1",
+        "name": "lebon",
+        "price": 10.0,
+        "stock": 10,
+        "supplier": {
+            "supplier_id": "1",
+            "name": "Kian ann industries",
+            "contact_email": "lebonkok@gmail.com"
+        },
+        "weight": 200.0
+    }
+]
